@@ -11,6 +11,7 @@ DEVICE_PATH := device/xiaomi/cepheus
 
 # Display
 TARGET_SCREEN_DENSITY := 440
+TARGET_GRALLOC_HANDLE_HAS_RESERVED_SIZE := true
 
 # Init
 TARGET_INIT_VENDOR_LIB := //$(DEVICE_PATH):init_xiaomi_cepheus
