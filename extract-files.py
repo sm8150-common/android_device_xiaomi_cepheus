@@ -18,36 +18,60 @@ from extract_utils.main import (
 )
 
 namespace_imports = [
-    'hardware/qcom-caf/sm8150',
-    'device/xiaomi/cepheus',
-    'hardware/xiaomi',
-    'hardware/qcom-caf/common/libqti-perfd-client',
-    'vendor/qcom/opensource/display',
-    'vendor/xiaomi/sm8150-common',
+	"device/xiaomi/cepheus",
+	"hardware/qcom-caf/sm8150",
+	"hardware/qcom-caf/wlan",
+	"hardware/xiaomi",
+	"vendor/qcom/opensource/dataservices",
+	"vendor/qcom/opensource/commonsys-intf/display",
+	"vendor/qcom/opensource/commonsys/display",
+	"vendor/qcom/opensource/display",
 ]
+
+
+def lib_fixup_vendor_suffix(lib: str, partition: str, *args, **kwargs):
+    return f'{lib}_{partition}' if partition == 'vendor' else None
+
 
 lib_fixups: lib_fixups_user_type = {
     **lib_fixups,
+    (
+        'com.qualcomm.qti.dpm.api@1.0',
+        'vendor.qti.hardware.fm@1.0',
+        'libmmosal',
+        'vendor.qti.hardware.wifidisplaysession@1.0',
+        'vendor.qti.imsrtpservice@3.0',
+    ): lib_fixup_vendor_suffix,
 }
 
 blob_fixups: blob_fixups_user_type = {
     'vendor/lib64/camera/components/com.qti.node.watermark.so': blob_fixup()
         .add_needed('libpiex_shim.so'),
-    'vendor/etc/init/init.batterysecret.rc': blob_fixup()
-        .regex_replace(' +seclabel u:r:batterysecret:s0\n', ''),
+    'system_ext/lib64/libwfdmmsrc_system.so': blob_fixup()
+        .add_needed('libgui_shim.so'),
+    'system_ext/lib64/libwfdnative.so': blob_fixup()
+        .add_needed('libbinder_shim.so')
+        .add_needed('libinput_shim.so'),
+    'system_ext/lib/libwfdservice.so': blob_fixup()
+        .add_needed('libaudioclient_shim.so')
+        .replace_needed('android.media.audio.common.types-V2-cpp.so', 'android.media.audio.common.types-V4-cpp.so'),
+    'system_ext/lib64/libwfdservice.so': blob_fixup()
+        .add_needed('libaudioclient_shim.so')
+        .replace_needed('android.media.audio.common.types-V2-cpp.so', 'android.media.audio.common.types-V4-cpp.so'),
+    'vendor/etc/init/init.mi_thermald.rc': blob_fixup()
+        .regex_replace('.*seclabel u:r:mi_thermald:s0\n', ''),
+    'vendor/etc/seccomp_policy/atfwd@2.0.policy': blob_fixup()
+        .add_line_if_missing('gettid: 1'),
+    'vendor/lib64/libwvhidl.so': blob_fixup()
+        .add_needed('libcrypto_shim.so'),
+    'vendor/lib64/mediadrm/libwvdrmengine.so': blob_fixup()
+        .add_needed('libcrypto_shim.so'),
     'vendor/lib/libaudioroute_ext.so': blob_fixup()
         .replace_needed('libaudioroute.so', 'libaudioroute-v34.so'),
-    'vendor/lib/hw/audio.primary.cepheus.so': blob_fixup()
-        .binary_regex_replace(
-            b'/vendor/lib/liba2dpoffload.so',
-            b'liba2dpoffload_cepheus.so\x00\x00\x00\x00\x00\x00\x00',
-        )
+    'vendor/lib/hw/audio.primary.msmnile.so': blob_fixup()
         .replace_needed('libaudioroute.so', 'libaudioroute-v34.so'),
-    'vendor/lib64/hw/camera.qcom.so': blob_fixup()
-        .binary_regex_replace(
-            b'\x73\x74\x5F\x6C\x69\x63\x65\x6E\x73\x65\x2E\x6C\x69\x63',
-            b'\x63\x61\x6D\x65\x72\x61\x5F\x63\x6E\x66\x2E\x74\x78\x74',
-        ),
+    'vendor/lib64/hw/audio.primary.msmnile.so': blob_fixup()
+        .replace_needed('libaudioroute.so', 'libaudioroute-v34.so'),
 }  # fmt: skip
 
 module = ExtractUtilsModule(
